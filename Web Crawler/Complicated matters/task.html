@@ -1,0 +1,48 @@
+<h2 style="text-align: center;">Description</h2>
+
+<p>At the final stage, implement a real web crawler!</p>
+
+<p>We suggest you use the following algorithm.</p>
+
+<p>Create some threads-workers which wait for new tasks in the task queue. A task is an URL. If a thread-worker gets a task, it goes to the page, saves its title, collects all links on the page, and adds this links as new tasks to the task queue.</p>
+
+<p>So links and titles will be <a href="https://en.wikipedia.org/wiki/Breadth-first_search" rel="nofollow noopener noreferrer">breadth-first searched</a>.</p>
+
+<p>Don't forget to exclude already visited pages from new tasks as they add redundant work.</p>
+
+<p>To sum up, add the following components to your window:</p>
+
+<ul>
+    <li>The number of threads-workers.</li>
+    <li>Two checkable restrictions:
+        <ul>
+            <li>Maximum crawling depth: if enabled, workers won't go too deep in the Internet.</li>
+            <li>Time limit: if enabled, workers won't add tasks after the given time.</li>
+        </ul>
+    </li>
+    <li>A <code>JToggleButton</code> Run/Stop to toggle crawling process (the button should deactivate automatically if a restriction becomes valid or there is no task in the task queue).</li>
+    <li>Metrics like elapsed time and parsed page count.</li>
+</ul>
+
+<h2 style="text-align: center;">Testing requirements</h2>
+
+<p>For the testing reasons, you need to set the name of each component using the method <code>component.setName(String name)</code>.<br>
+    On this stage, please provide the following components:</p>
+
+<ul>
+    <li><code>JTextField</code> "UrlTextField".</li>
+    <li><code>JToggleButton</code> "RunButton".</li>
+    <li><code>JTextField</code> "DepthTextField".</li>
+    <li><code>JCheckBox</code> "DepthCheckBox".</li>
+    <li><code>JLabel</code> "ParsedLabel".</li>
+    <li><code>JTextField</code> "ExportUrlTextField".</li>
+    <li><code>JButton</code> "ExportButton".</li>
+</ul>
+
+<h2 style="text-align: center;">Example</h2>
+
+<p>Below there is the example of how your new window might look:</p>
+
+<p style="text-align: center;"><img alt="" src="https://ucarecdn.com/d7c94d48-02da-4484-9085-9517d629f65b/"></p>
+
+<p> </p>

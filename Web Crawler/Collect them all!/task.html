@@ -1,0 +1,41 @@
+<h2 style="text-align: center;">Description</h2>
+
+<p>Continue developing the crawler: let's collect all the links to other web pages on the page and their titles.</p>
+
+<p>As you may know, links in HTML are tags like <code>&lt;a href="LINK"&gt;</code>, where <code>LINK</code> is obviously an URL and quotes can be single (<code>'</code>) or double (<code>"</code>).</p>
+
+<p>The link can be presented in many ways:</p>
+
+<ul>
+    <li>An absolute link like <code>https://www.wikipedia.org/index.html</code>.</li>
+    <li>A relative link like <code>page.html</code>. It doesn't contain slashes. To get an absolute link you should cut the original link to the last slash and add this relative link: <code>https://www.wikipedia.org/index.html</code>=&gt; <code>page.html</code> = <code>https://www.wikipedia.org/page.html</code>.</li>
+    <li>A link without protocol like <code>//en.wikipedia.org/</code> or <code>en.wikipedia.org/</code>. Here you need just to add protocol of original page: <code>http</code> or <code>https</code>.</li>
+</ul>
+
+<p>Don't forget that there are not only links to web pages. Also, there are images, music, video, and so on. Handle these cases: update page download code. <code>URL</code>'s <code>openStream()</code> method is a shorthand for <code>openConnection().getInputStream()</code>. So receive an object <code>URLConnection</code> by <code>openConnection()</code> and check its <code>getContentType()</code>. It must be equal to <code>"text/html"</code>. Then use <code>.getInputStream()</code> to pass the connection to the <code>InputStreamReader</code>.</p>
+
+<p>Then display a <code>JTable</code> with this data: the first column is the link, the second one is its title.</p>
+
+<p>Put the <code>JTable</code> in a <code>JScrollPane</code> so the <code>JTable</code> header will be shown.</p>
+
+<h2 style="text-align: center;">Testing requirements</h2>
+
+<p>For the testing reasons, you need to set the name of each component using the method <code>component.setName(String name)</code>.<br>
+    On this stage, please provide the following components:</p>
+
+<ul>
+    <li><code>JTextField</code> "UrlTextField".</li>
+    <li><code>JButton</code> "RunButton".</li>
+    <li><code>JLabel</code> "TitleLabel".</li>
+    <li><code>JTable</code> "TitlesTable".</li>
+</ul>
+
+<h2 style="text-align: center;">Example</h2>
+
+<p>Below there is the example of how your new window might look:</p>
+
+<p> </p>
+
+<p style="text-align: center;"><img alt="" src="https://ucarecdn.com/11458043-4aa4-462f-a782-a03dfef00c39/"></p>
+
+<p> </p>

@@ -1,0 +1,436 @@
+type: edu
+custom_name: stage4
+files:
+- name: test/CrawlerTest.java
+  visible: false
+  text: |
+    import common.WebCrawlerStage4Test;
+
+    public class CrawlerTest extends WebCrawlerStage4Test {
+
+    }
+  learner_created: false
+- name: test/common/WebCrawlerCommonTestGenerator.kt
+  visible: false
+  text: |
+    package common
+
+    import org.assertj.swing.fixture.AbstractJComponentFixture
+    import org.hyperskill.hstest.v6.stage.SwingTest
+    import org.hyperskill.hstest.v6.testcase.TestCase
+    import javax.swing.JFrame
+
+    fun frameTests(frameGetter: () -> JFrame): List<TestCase<WebCrawlerClue>> {
+        return listOf(
+            createWebCrawlerTest("Window is not visible") { frameGetter().isVisible.toCheckResult() },
+            createWebCrawlerTest("Window title is empty") { frameGetter().title.isNotEmpty().toCheckResult() }
+        )
+    }
+
+    class ComponentRequirements<ComponentType : AbstractJComponentFixture<*, *, *>>(
+        val name: String,
+        val isEnabled: Boolean,
+        private val componentFinder: (String) -> ComponentType?
+    ) {
+        val suitableComponent: ComponentType? by lazy { componentFinder(name) }
+    }
+
+    fun existenceTests(vararg components: ComponentRequirements<*>): List<TestCase<WebCrawlerClue>> {
+        fun generateExistenceTest(requirements: ComponentRequirements<*>): TestCase<WebCrawlerClue> {
+            return createWebCrawlerTest("No suitable component '${requirements.name}' is found") {
+                SwingTest.checkExistence { requirements.suitableComponent }.toCheckResult()
+            }
+        }
+
+        return components.map(::generateExistenceTest)
+    }
+
+    fun componentsAreEnabledTests(vararg components: ComponentRequirements<*>): List<TestCase<WebCrawlerClue>> {
+        fun generateIsEnabledTest(requirements: ComponentRequirements<*>): TestCase<WebCrawlerClue> {
+            return if (requirements.isEnabled) {
+                createWebCrawlerTest("'${requirements.name}' should be enabled") {
+                    val component = requireNotNull(requirements.suitableComponent) {
+                        "Should check for the component existence before"
+                    }
+
+                    return@createWebCrawlerTest component.isEnabled.toCheckResult()
+                }
+            } else {
+                createWebCrawlerTest("'${requirements.name}' should be disabled") {
+                    val component = requireNotNull(requirements.suitableComponent) {
+                        "Should check for the component existence before"
+                    }
+
+                    return@createWebCrawlerTest (!component.isEnabled).toCheckResult()
+                }
+            }
+        }
+
+        return components.map(::generateIsEnabledTest)
+    }
+  learner_created: false
+- name: test/common/WebCrawlerLocalhostPages.kt
+  visible: false
+  text: |
+    package common
+
+    import org.hyperskill.hstest.v6.mocks.web.WebPage
+    import org.hyperskill.hstest.v6.mocks.web.WebServerMock
+    import org.hyperskill.hstest.v6.testcase.TestCase
+
+    fun <AttachType> TestCase<AttachType>.withLocalhostPagesOn(port: Int): TestCase<AttachType> {
+        val webServerMock = WebServerMock(port).apply {
+            pages.forEach { _, (_, content, relativeUrl) ->
+                setPage(relativeUrl,
+                        WebPage().setContent(content).setContentType("text/html")) }
+        }
+
+        return this.runWith(webServerMock)
+    }
+
+    data class PageProperties(val title: String, val content: String, val relativePath: String, val childUrls: Set<String>)
+
+    val pages = mapOf(
+        localhost(PORT, "/exampleDotCom") to PageProperties(
+            "Example Domain",
+            """<!doctype html>
+    <html>
+    <head>
+        <title>Example Domain</title>
+
+        <meta charset="utf-8" />
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style type="text/css">
+        body {
+            background-color: #f0f0f2;
+            margin: 0;
+            padding: 0;
+            font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+        }
+        div {
+            width: 600px;
+            margin: 5em auto;
+            padding: 50px;
+            background-color: #fff;
+            border-radius: 1em;
+        }
+        a:link, a:visited {
+            color: #38488f;
+            text-decoration: none;
+        }
+        @media (max-width: 700px) {
+            body {
+                background-color: #fff;
+            }
+            div {
+                width: auto;
+                margin: 0 auto;
+                border-radius: 0;
+                padding: 1em;
+            }
+        }
+        </style>
+    </head>
+
+    <body>
+    <div>
+        <h1>Example of Example Domain</h1>
+        <p>This domain is established to be used for illustrative examples in documents. You may use this
+        domain in examples without prior coordination or asking for permission.</p>
+        <p><a href="unavailablePage">More information...</a></p>
+    </div>
+    </body>
+    </html>""",
+            "/exampleDotCom",
+            setOf(localhost(PORT, "/unavailablePage"))
+        ),
+        localhost(PORT, "/circular1") to PageProperties(
+            "circular1tiTle",
+            """
+                |<!doctype html>
+                |<html>
+                |<head>
+                |<title>circular1tiTle</title>
+                |</head>
+                |<body>
+                |<a href="circular2">link1</a>
+                |</body>
+                |</html>
+            """.trimMargin(),
+            "/circular1",
+            setOf(localhost(PORT, "/circular2"))
+        ),
+        localhost(PORT, "/circular2") to PageProperties(
+            "circular2tiTle",
+            """
+                |<!doctype html>
+                |<html>
+                |<head>
+                |<title>circular2tiTle</title>
+                |</head>
+                |<body>
+                |<a href="circular3">link1</a>
+                |</body>
+                |</html>
+            """.trimMargin(),
+            "/circular2",
+            setOf(localhost(PORT, "/circular3"))
+        ),
+        localhost(PORT, "/circular3") to PageProperties(
+            "circular3tiTle",
+            """
+                |<!doctype html>
+                |<html>
+                |<head>
+                |<title>circular3tiTle</title>
+                |</head>
+                |<body>
+                |<a href="circular1">link</a>
+                |<a href="exampleDotCom">link</a>
+                |</body>
+                |</html>
+            """.trimMargin(),
+            "/circular3",
+            setOf(localhost(PORT, "/circular1"), localhost(PORT, "/exampleDotCom"))
+        )
+    )
+  learner_created: false
+- name: test/common/WebCrawlerStage4Test.kt
+  visible: false
+  text: |
+    package common
+
+    import org.assertj.swing.fixture.JButtonFixture
+    import org.assertj.swing.fixture.JTableFixture
+    import org.assertj.swing.fixture.JTextComponentFixture
+    import org.hyperskill.hstest.v6.common.Utils.sleep
+    import org.hyperskill.hstest.v6.stage.SwingTest
+    import org.hyperskill.hstest.v6.testcase.CheckResult
+    import org.hyperskill.hstest.v6.testcase.TestCase
+
+    import crawler.WebCrawler
+    import org.assertj.swing.fixture.JLabelFixture
+
+    abstract class WebCrawlerStage4Test : SwingTest<WebCrawlerClue>(WebCrawler()) {
+
+        override fun generate(): List<TestCase<WebCrawlerClue>> {
+            val titlesTable = ComponentRequirements("TitlesTable", isEnabled = false) { window.table(it) }
+            val urlText = ComponentRequirements("UrlTextField", isEnabled = true) { window.textBox(it) }
+            val getButton = ComponentRequirements("RunButton", isEnabled = true) { window.button(it) }
+            val titleLabel = ComponentRequirements("TitleLabel", isEnabled = true) { window.label(it) }
+
+            return frameTests(::frame) +
+                    existenceTests(titlesTable, urlText, getButton, titleLabel) +
+                    componentsAreEnabledTests(titlesTable, urlText, getButton, titleLabel) +
+                    stage3Tests(
+                        titleLabelRequirements = titleLabel,
+                        getTextButtonRequirements = getButton,
+                        locationTextFieldRequirements = urlText
+                    ) +
+                    stage4Tests(
+                        titlesTableRequirements = titlesTable,
+                        getTextButtonRequirements = getButton,
+                        locationTextFieldRequirements = urlText
+                    )
+        }
+
+        override fun check(reply: String, clue: WebCrawlerClue): CheckResult {
+            return checkWebCrawlerTest(reply = reply, clue = clue)
+        }
+    }
+
+    fun stage3Tests(
+            titleLabelRequirements: ComponentRequirements<JLabelFixture>,
+            getTextButtonRequirements: ComponentRequirements<JButtonFixture>,
+            locationTextFieldRequirements: ComponentRequirements<JTextComponentFixture>
+    ): List<TestCase<WebCrawlerClue>> {
+        return listOf(
+                createWebCrawlerTest("Title your app shows is wrong") {
+                    val locationTextField = locationTextFieldRequirements.requireExistingComponent()
+                    val getTextButton = getTextButtonRequirements.requireExistingComponent()
+                    val titleLabel = titleLabelRequirements.requireExistingComponent()
+
+                    return@createWebCrawlerTest pages
+                            .asSequence()
+                            .map { (url, pageProperties) ->
+                                locationTextField.setText(url)
+
+                                getTextButton.click()
+
+                                sleep(100)
+
+                                val titleInLabel = titleLabel.text().orEmpty()
+
+                                return@map titleInLabel == pageProperties.title
+                            }
+                            .all { it }
+                            .toCheckResult()
+                }.withLocalhostPagesOn(PORT)
+        )
+    }
+
+
+    fun stage4Tests(
+        titlesTableRequirements: ComponentRequirements<JTableFixture>,
+        getTextButtonRequirements: ComponentRequirements<JButtonFixture>,
+        locationTextFieldRequirements: ComponentRequirements<JTextComponentFixture>
+    ): List<TestCase<WebCrawlerClue>> {
+        return listOf(
+            createWebCrawlerTest {
+                val locationTextField = locationTextFieldRequirements.requireExistingComponent()
+                val getTextButton = getTextButtonRequirements.requireExistingComponent()
+                val titleTable = titlesTableRequirements.requireExistingComponent()
+
+                for (url in pages.keys) {
+                    locationTextField.setText(url)
+
+                    getTextButton.click()
+
+                    sleep(100)
+
+                    val contents = titleTable.contents()
+
+                    if (contents.any { it.size != 2 }) {
+                        return@createWebCrawlerTest fail("Table your app shows has a wrong columns number")
+                    }
+
+                    if (contents.size != url.deepUrls(depth = 1).size) {
+                        return@createWebCrawlerTest fail("Table your app shows has a wrong rows number" +
+                                " have ${contents.size} should ${ url.deepUrls(depth = 1).size}")
+                    }
+
+                    for ((writtenUrl, writtenTitle) in contents) {
+                        if (pages.getValue(writtenUrl).title != writtenTitle) {
+                            return@createWebCrawlerTest fail("Table your app shows has a wrong row")
+                        }
+                    }
+                }
+
+                return@createWebCrawlerTest CheckResult(true)
+            }.withLocalhostPagesOn(PORT)
+        )
+    }
+  learner_created: false
+- name: test/common/WebCrawlerUtil.kt
+  visible: false
+  text: |
+    package common
+
+    import org.assertj.swing.fixture.AbstractJComponentFixture
+    import org.assertj.swing.fixture.JCheckBoxFixture
+    import org.hyperskill.hstest.v6.testcase.CheckResult
+    import org.hyperskill.hstest.v6.testcase.TestCase
+
+    const val PORT = 25555  // TODO: maybe use another port?
+
+    class WebCrawlerClue(val feedback: String?, val checker: () -> CheckResult)
+
+    fun createWebCrawlerTest(feedback: String? = null, checker: () -> CheckResult): TestCase<WebCrawlerClue> {
+        return TestCase<WebCrawlerClue>()
+            .setAttach(
+                WebCrawlerClue(
+                    feedback = feedback,
+                    checker = checker
+                )
+            )
+    }
+
+    fun checkWebCrawlerTest(reply: String, clue: WebCrawlerClue): CheckResult {
+        return try {
+            val (result, feedback) = clue.checker()
+
+            CheckResult(result, clue.feedback ?: feedback)
+        } catch (e: AssertionError) {
+            CheckResult(false, clue.feedback)
+        }
+    }
+
+    private operator fun CheckResult.component1() = isCorrect
+    private operator fun CheckResult.component2() = feedback
+
+    fun Boolean.toCheckResult() = CheckResult(this)
+
+    fun fail(message: String) = CheckResult(false, message)
+
+    fun htmlTextsAreEqual(source: String, inTextField: String): Boolean {
+        fun String.formatted(): String {
+            return this.trim().replace("\r\n", "\n").replace("\r", "\n")
+        }
+
+        return source.formatted() == inTextField.formatted()
+    }
+
+    fun <ComponentType : AbstractJComponentFixture<*, *, *>> ComponentRequirements<ComponentType>.requireExistingComponent(): ComponentType {
+        return requireNotNull(this.suitableComponent) {
+            "Must check for the '${this.name}' component existence before this test"
+        }
+    }
+
+    fun localhost(port: Int, url: String) = "http://localhost:$port$url"
+
+    fun String.deepUrls(depth: Int): Set<String> {
+        fun String.childrenOrEmpty(): Set<String> {
+            val pageProperties = pages[this]
+
+            if (depth < 0 || pageProperties == null) {
+                return emptySet()
+            }
+
+            return pageProperties.childUrls.filter { it in pages }.toSet()
+        }
+
+        var remainingDepth = depth - 1
+        val answer = this.childrenOrEmpty().toMutableSet()
+        while (remainingDepth > 0) {
+            val next = answer.flatMap { it.childrenOrEmpty() } - answer
+
+            if (next.isEmpty()) {
+                break
+            }
+
+            answer.addAll(next)
+
+            --remainingDepth
+        }
+
+        return answer
+    }
+
+    fun JCheckBoxFixture.enable() {
+        if (!this.isEnabled) {
+            this.click()
+        }
+    }
+  learner_created: false
+- name: src/crawler/ApplicationRunner.java
+  visible: true
+  text: |
+    package crawler;
+
+
+    public class ApplicationRunner {
+        public static void main(String[] args) {
+            new WebCrawler();
+        }
+    }
+  learner_created: false
+- name: src/crawler/WebCrawler.java
+  visible: true
+  text: |-
+    package crawler;
+
+    import javax.swing.*;
+
+    public class WebCrawler extends JFrame {
+        public WebCrawler() {
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            setSize(300, 300);
+            setVisible(true);
+        }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/projects/59/stages/320/implement
+status: Unchecked
+record: -1

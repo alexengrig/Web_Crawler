@@ -1,0 +1,31 @@
+<h2 style="text-align: center;">Description</h2>
+
+<p>Implement the table export: this is useful for sending results to another computer or for processing results in another program. Add a button to save file on disk. Also, add a text field where the file path will be written.</p>
+
+<p>You can write a file like a set of pairs of lines: every odd line contains a link and the following (even) line contains the title of the web page by the link.</p>
+
+<p>Also, you can update the way you've been creating the <code>URLConnection</code> to disguise as a human because many sites can send a wrong HTML code if they understand that the query is sent by a bot. The aim is to specify <code>user-agent</code> property as the property in common browser.</p>
+
+<p>Do <code>.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Gecko/20100101 Firefox/63.0")</code> for an <code>URLConnection</code> object. It's like Firefox running on Windows 10. So most sites will treat the bot as a human.</p>
+
+<h2 style="text-align: center;">Testing requirements</h2>
+
+<p>For the testing reasons, you need to set the name of each component using the method <code>component.setName(String name)</code>.<br>
+    On this stage, please provide the following components:</p>
+
+<ul>
+    <li><code>JTextField</code> "UrlTextField".</li>
+    <li><code>JButton</code> "RunButton".</li>
+    <li><code>JLabel</code> "TitleLabel".</li>
+    <li><code>JTable</code> "TitlesTable".</li>
+    <li><code>JTextField</code> "ExportUrlTextField".</li>
+    <li><code>JButton</code> "ExportButton".</li>
+</ul>
+
+<h2 style="text-align: center;">Example</h2>
+
+<p>Below there is the example of how your new window might look:</p>
+
+<p> </p>
+
+<p style="text-align: center;"><img alt="" src="https://ucarecdn.com/520dcbed-0332-4d13-b70a-efcec0aa558c/"></p>

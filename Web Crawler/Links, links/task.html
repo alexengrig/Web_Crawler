@@ -1,0 +1,65 @@
+<h2 style="text-align: center;">Description</h2>
+
+<p>Now let's download a source code of the given web page.</p>
+
+<p>Rename your <code>SimpleWindow</code> class to <code>WebCrawlerWindow</code> (you can do it fast: click the right mouse button on the <code>SimpleWindow</code> class, then choose "Refactor" - "Rename", and the class will be renamed everywhere).</p>
+
+<p>Next, add two components to the frame: a <code>JTextField</code> for the target site URL and a <code>JButton</code> launching download.</p>
+
+<p>And how to download a web page?</p>
+
+<p>There are standard Java classes.</p>
+
+<p>Here is an algorithm downloading a web page text:</p>
+
+<pre><code class="language-java">final String url = /* Get url from JTextField */;
+
+final InputStream inputStream = new URL(url).openStream();
+final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+final StringBuilder stringBuilder = new StringBuilder();
+
+String nextLine;
+while ((nextLine = reader.readLine()) != null) {
+    stringBuilder.append(nextLine);
+    stringBuilder.append(LINE_SEPARATOR);
+}
+
+final String siteText = stringBuilder.toString();
+</code></pre>
+
+<ol>
+    <li>Firstly, the link is stored in the <code>url</code> variable.</li>
+    <li>Then the input stream is created.</li>
+    <li>After that, there is a creation of the stream reader: we specify the most common charset here.</li>
+    <li>Then the reader reads the site text line-by-line to the <code>StringBuilder</code> (it has a faster appending performance compared to simple string concatenation).</li>
+    <li>Finally, the <code>StringBuilder</code> saves the site text to a single string.</li>
+</ol>
+
+<p>Please note that this algorithm requires some more code.</p>
+
+<ul>
+    <li>You need to import <code>java.io.*</code>, <code>java.net.URL</code> and <code>java.nio.charset.StandardCharsets</code>.</li>
+    <li>Line separator can be retrieved by <code>LINE_SEPARATOR = System.getProperty("line.separator")</code>.</li>
+    <li>The code should be placed into <code>try-catch</code> construction to handle checked exceptions.</li>
+</ul>
+
+<h2 style="text-align: center;">Testing requirements</h2>
+
+<p>For the testing reasons, you need to set the name of each component using the method <code>component.setName(String name)</code>.<br>
+    On this stage, please provide the following components:</p>
+
+<ul>
+    <li><code>JTextField</code> "UrlTextField".</li>
+    <li><code>JButton</code> "RunButton".</li>
+    <li><code>JTextArea</code> "HtmlTextArea".</li>
+</ul>
+
+<h2 style="text-align: center;">Example</h2>
+
+<p>Below there is the example of how your window might look:</p>
+
+<p> </p>
+
+<p style="text-align: center;"><img alt="" src="https://ucarecdn.com/2774d6df-8485-4675-b5e1-112d6a650929/"></p>
+
+<p> </p>

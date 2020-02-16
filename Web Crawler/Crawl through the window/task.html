@@ -1,0 +1,42 @@
+<h2 style="text-align: center;">Description</h2>
+
+<p>Let's begin implementing the bot.</p>
+
+<p>In Swing, the class that represents an empty window is <code>JFrame</code>. Actually, all of the classes that represent graphic elements in Swing start with the letter <code>J</code>. Don't confuse these classes with classes that represent graphic elements of the AWT library (for example, the class <code>Button</code> in the AWT library versus the class <code>JButton</code> in the Swing library).</p>
+
+<p>To improve the basic window, you should extend <code>JFrame</code> class and write your own logic for the window. Let's see this code below in the constructor of <code>SimpleWindow</code> class that extends <code>JFrame</code>:</p>
+
+<pre><code class="language-java">setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+setSize(300, 300);
+setVisible(true);
+setLayout(null);
+</code></pre>
+
+<p>Without the first line, if you close the program, your program would be still running, and after that, you can only kill it using the task manager or the IDE (if you are running it under an IDE).</p>
+
+<p>The second line sets the size of the window. Without it, the program would be 0 pixels in width and height. Of course, nothing can fit in this window size. And if you run the program, you would see nothing because the window is invisible by default. The third line fixes this. The fourth line means that there won't be any strategy for placing the elements on the screen. You can place components on the window using absolute coordinates and bounds.</p>
+
+<p>You can place any component anywhere using <code>component.setLocation(int x , int y)</code> and <code>component.setSize(int width, int height)</code>. If you want to change both the size and the location of the component, you may want to use <code>component.setBounds(int x, int y, int width, int height)</code>. To add a Swing component to the window, you need to invoke the add method and pass the component as a parameter. For example: <code>add(component)</code>.</p>
+
+<p>Also, you can use the method <code>setTitle</code> to set the name of the window.</p>
+
+<p>You can find the list of components <a href="http://zetcode.com/tutorials/javaswingtutorial/basicswingcomponents/" rel="nofollow noopener noreferrer">here</a> and <a href="http://zetcode.com/tutorials/javaswingtutorial/basicswingcomponentsII/" rel="nofollow noopener noreferrer">here</a>. In this stage, you need to use the most suitable component for displaying a web page code: <code>JTextArea</code>. For now, place a static text into the <code>JTextArea</code> and make it disabled.</p>
+
+<p>Send the link to your pull request on GitHub with the solution after each stage of this project.</p>
+
+<h2 style="text-align: center;">Testing requirements</h2>
+
+<p>For the testing reasons, you need to set the name of each component using the method <code>component.setName(String name)</code>.<br>
+    On this stage, please provide the following components:</p>
+
+<ul>
+    <li><code>JTextArea</code> "TextArea".</li>
+</ul>
+
+<h2 style="text-align: center;">Example</h2>
+
+<p>Below there is the example of how your basic window might look:</p>
+
+<p style="text-align: center;"><img alt="" src="https://ucarecdn.com/4d430eef-c80b-454e-ac1f-07c145e3445b/"></p>
+
+<p> </p>
