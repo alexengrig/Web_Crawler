@@ -7,12 +7,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class WebCrawler extends JFrame {
     private final static String LINE_SEPARATOR = System.lineSeparator();
+    private JTextField urlTextField;
+    private JTextArea htmlTextArea;
+    private JLabel titleLabel;
 
     public WebCrawler() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -26,40 +28,61 @@ public class WebCrawler extends JFrame {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        JTextArea htmlTextArea = new JTextArea();
-        htmlTextArea.setName("HtmlTextArea");
-        htmlTextArea.setEnabled(false);
-        add(new JScrollPane(htmlTextArea), BorderLayout.CENTER);
-
         JPanel topPanel = new JPanel(new BorderLayout());
 
-        JTextField urlTextField = new JTextField();
+        JLabel urlLabel = new JLabel("URL: ");
+        topPanel.add(urlLabel, BorderLayout.WEST);
+
+        urlTextField = new JTextField();
         urlTextField.setName("UrlTextField");
         topPanel.add(urlTextField, BorderLayout.CENTER);
 
         JButton runButton = new JButton("Get text!");
         runButton.setName("RunButton");
-        runButton.addActionListener(getCrawlerListener(urlTextField::getText, htmlTextArea::setText));
+        runButton.addActionListener(getCrawlerListener());
         topPanel.add(runButton, BorderLayout.EAST);
 
+        titleLabel = new JLabel("Title: ");
+        titleLabel.setName("TitleLabel");
+        topPanel.add(titleLabel, BorderLayout.SOUTH);
+
         add(topPanel, BorderLayout.NORTH);
+
+        htmlTextArea = new JTextArea();
+        htmlTextArea.setName("HtmlTextArea");
+        htmlTextArea.setEnabled(false);
+        add(new JScrollPane(htmlTextArea), BorderLayout.CENTER);
     }
 
-    private ActionListener getCrawlerListener(Supplier<String> urlProducer, Consumer<String> htmlConsumer) {
+    private ActionListener getCrawlerListener() {
         return event -> {
-            final String url = urlProducer.get();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(url).openStream(), StandardCharsets.UTF_8))) {
-                final StringBuilder stringBuilder = new StringBuilder();
-                String nextLine;
-                while ((nextLine = reader.readLine()) != null) {
-                    stringBuilder.append(nextLine);
-                    stringBuilder.append(LINE_SEPARATOR);
+            try {
+                final String html = getHtml(urlTextField.getText());
+                htmlTextArea.setText(html);
+                final String beginTitle = "<title>";
+                final int indexOfBeginTitle = html.indexOf(beginTitle);
+                if (indexOfBeginTitle != -1) {
+                    final int indexOfEndTitle = html.indexOf("</title>");
+                    if (indexOfEndTitle != -1) {
+                        final String title = html.substring(indexOfBeginTitle + beginTitle.length(), indexOfEndTitle);
+                        titleLabel.setText(title);
+                    }
                 }
-                final String html = stringBuilder.toString();
-                htmlConsumer.accept(html);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         };
+    }
+
+    private String getHtml(String url) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(url).openStream(), UTF_8))) {
+            final StringBuilder stringBuilder = new StringBuilder();
+            String nextLine;
+            while ((nextLine = reader.readLine()) != null) {
+                stringBuilder.append(nextLine);
+                stringBuilder.append(LINE_SEPARATOR);
+            }
+            return stringBuilder.toString();
+        }
     }
 }
