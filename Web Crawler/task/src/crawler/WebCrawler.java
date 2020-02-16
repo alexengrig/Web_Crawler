@@ -4,11 +4,10 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -21,6 +20,7 @@ public class WebCrawler extends JFrame {
     private JTextField urlTextField;
     private JTable table;
     private JLabel titleLabel;
+    private JTextField exportTextField;
 
     public WebCrawler() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -43,7 +43,7 @@ public class WebCrawler extends JFrame {
         urlTextField.setName("UrlTextField");
         topPanel.add(urlTextField, BorderLayout.CENTER);
 
-        JButton runButton = new JButton("Get text!");
+        JButton runButton = new JButton("Parse");
         runButton.setName("RunButton");
         runButton.addActionListener(getCrawlerListener());
         topPanel.add(runButton, BorderLayout.EAST);
@@ -61,6 +61,22 @@ public class WebCrawler extends JFrame {
         table.setName("TitlesTable");
         table.setEnabled(false);
         add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+
+        JLabel exportLabel = new JLabel("Export: ");
+        bottomPanel.add(exportLabel, BorderLayout.WEST);
+
+        exportTextField = new JTextField();
+        exportTextField.setName("ExportUrlTextField");
+        bottomPanel.add(exportTextField, BorderLayout.CENTER);
+
+        JButton exportButton = new JButton("Save");
+        exportButton.setName("ExportButton");
+        exportButton.addActionListener(getExportListener());
+        bottomPanel.add(exportButton, BorderLayout.EAST);
+
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
     private ActionListener getCrawlerListener() {
@@ -68,6 +84,9 @@ public class WebCrawler extends JFrame {
             try {
                 String link = urlTextField.getText();
                 URL homeUrl = getUrlFromLink(link);
+                if (homeUrl == null) {
+                    return;
+                }
                 final String homeHtml = getHtml(homeUrl);
                 final String homeTitle = getTitle(homeHtml);
                 titleLabel.setText(homeTitle);
@@ -95,7 +114,11 @@ public class WebCrawler extends JFrame {
     }
 
     private String getHtml(URL url) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), UTF_8))) {
+        URLConnection urlConnection = url.openConnection();
+        urlConnection.setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Gecko/20100101 Firefox/63.0");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), UTF_8))) {
             final StringBuilder stringBuilder = new StringBuilder();
             String nextLine;
             while ((nextLine = reader.readLine()) != null) {
@@ -148,7 +171,11 @@ public class WebCrawler extends JFrame {
     private URL getUrl(URL context, String link) {
         try {
             URL url = new URL(context, link);
-            String contentType = url.openConnection().getContentType();
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.setRequestProperty(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Gecko/20100101 Firefox/63.0");
+            String contentType = urlConnection.getContentType();
             if ("text/html".equals(contentType)) {
                 return url;
             }
@@ -156,5 +183,45 @@ public class WebCrawler extends JFrame {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private ActionListener getExportListener() {
+        return event -> {
+            final String path = exportTextField.getText();
+            if (path.isEmpty()) {
+                return;
+            }
+            final File file = new File(path);
+            if (!file.exists()) {
+                final File parent = file.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    if (!parent.mkdirs()) {
+                        new IOException("Failed to create directories: " + parent).printStackTrace();
+                        return;
+                    }
+                }
+                try {
+                    if (!file.createNewFile()) {
+                        new IOException("Failed to create file: " + file).printStackTrace();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return;
+                }
+            }
+            try (FileWriter writer = new FileWriter(file)) {
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    final String url = model.getValueAt(i, 0).toString();
+                    writer.write(url);
+                    writer.write(LINE_SEPARATOR);
+                    final String title = model.getValueAt(i, 1).toString();
+                    writer.write(title);
+                    writer.write(LINE_SEPARATOR);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        };
     }
 }
