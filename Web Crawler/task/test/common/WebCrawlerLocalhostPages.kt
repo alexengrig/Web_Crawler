@@ -1,5 +1,18 @@
 package common
 
+import org.hyperskill.hstest.v6.mocks.web.WebPage
+import org.hyperskill.hstest.v6.mocks.web.WebServerMock
+import org.hyperskill.hstest.v6.testcase.TestCase
+
+fun <AttachType> TestCase<AttachType>.withLocalhostPagesOn(port: Int): TestCase<AttachType> {
+    val webServerMock = WebServerMock(port).apply {
+        pages.forEach { _, (_, content, relativeUrl) ->
+            setPage(relativeUrl,
+                    WebPage().setContent(content).setContentType("text/html")) }
+    }
+
+    return this.runWith(webServerMock)
+}
 
 data class PageProperties(val title: String, val content: String, val relativePath: String, val childUrls: Set<String>)
 
