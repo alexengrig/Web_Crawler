@@ -1,7 +1,7 @@
 package common
 
 import org.assertj.swing.fixture.JButtonFixture
-import org.assertj.swing.fixture.JLabelFixture
+import org.assertj.swing.fixture.JTableFixture
 import org.assertj.swing.fixture.JTextComponentFixture
 import org.hyperskill.hstest.v6.common.Utils.sleep
 import org.hyperskill.hstest.v6.stage.SwingTest
@@ -9,25 +9,26 @@ import org.hyperskill.hstest.v6.testcase.CheckResult
 import org.hyperskill.hstest.v6.testcase.TestCase
 
 import crawler.WebCrawler
+import org.assertj.swing.fixture.JLabelFixture
 
-abstract class WebCrawlerStage3Test : SwingTest<WebCrawlerClue>(WebCrawler()) {
+abstract class WebCrawlerStage4Test : SwingTest<WebCrawlerClue>(WebCrawler()) {
 
     override fun generate(): List<TestCase<WebCrawlerClue>> {
-        val htmlText = ComponentRequirements("HtmlTextArea", isEnabled = false) { window.textBox(it) }
+        val titlesTable = ComponentRequirements("TitlesTable", isEnabled = false) { window.table(it) }
         val urlText = ComponentRequirements("UrlTextField", isEnabled = true) { window.textBox(it) }
         val getButton = ComponentRequirements("RunButton", isEnabled = true) { window.button(it) }
         val titleLabel = ComponentRequirements("TitleLabel", isEnabled = true) { window.label(it) }
 
         return frameTests(::frame) +
-                existenceTests(htmlText, urlText, getButton, titleLabel) +
-                componentsAreEnabledTests(htmlText, urlText, getButton, titleLabel) +
-                stage2Tests(
-                    htmlTextAreaRequirements = htmlText,
+                existenceTests(titlesTable, urlText, getButton, titleLabel) +
+                componentsAreEnabledTests(titlesTable, urlText, getButton, titleLabel) +
+                stage3Tests(
+                    titleLabelRequirements = titleLabel,
                     getTextButtonRequirements = getButton,
                     locationTextFieldRequirements = urlText
                 ) +
-                stage3Tests(
-                    titleLabelRequirements = titleLabel,
+                stage4Tests(
+                    titlesTableRequirements = titlesTable,
                     getTextButtonRequirements = getButton,
                     locationTextFieldRequirements = urlText
                 )
@@ -38,16 +39,16 @@ abstract class WebCrawlerStage3Test : SwingTest<WebCrawlerClue>(WebCrawler()) {
     }
 }
 
-fun stage2Tests(
-        htmlTextAreaRequirements: ComponentRequirements<JTextComponentFixture>,
+fun stage3Tests(
+        titleLabelRequirements: ComponentRequirements<JLabelFixture>,
         getTextButtonRequirements: ComponentRequirements<JButtonFixture>,
         locationTextFieldRequirements: ComponentRequirements<JTextComponentFixture>
 ): List<TestCase<WebCrawlerClue>> {
     return listOf(
-            createWebCrawlerTest("HTML code your app shows is wrong") {
+            createWebCrawlerTest("Title your app shows is wrong") {
                 val locationTextField = locationTextFieldRequirements.requireExistingComponent()
                 val getTextButton = getTextButtonRequirements.requireExistingComponent()
-                val htmlTextArea = htmlTextAreaRequirements.requireExistingComponent()
+                val titleLabel = titleLabelRequirements.requireExistingComponent()
 
                 return@createWebCrawlerTest pages
                         .asSequence()
@@ -56,9 +57,11 @@ fun stage2Tests(
 
                             getTextButton.click()
 
-                            val textInTextArea = htmlTextArea.text().orEmpty()
+                            sleep(100)
 
-                            return@map htmlTextsAreEqual(pageProperties.content, textInTextArea)
+                            val titleInLabel = titleLabel.text().orEmpty()
+
+                            return@map titleInLabel == pageProperties.title
                         }
                         .all { it }
                         .toCheckResult()
@@ -66,32 +69,44 @@ fun stage2Tests(
     )
 }
 
-fun stage3Tests(
-    titleLabelRequirements: ComponentRequirements<JLabelFixture>,
+
+fun stage4Tests(
+    titlesTableRequirements: ComponentRequirements<JTableFixture>,
     getTextButtonRequirements: ComponentRequirements<JButtonFixture>,
     locationTextFieldRequirements: ComponentRequirements<JTextComponentFixture>
 ): List<TestCase<WebCrawlerClue>> {
     return listOf(
-        createWebCrawlerTest("Title your app shows is wrong") {
+        createWebCrawlerTest {
             val locationTextField = locationTextFieldRequirements.requireExistingComponent()
             val getTextButton = getTextButtonRequirements.requireExistingComponent()
-            val titleLabel = titleLabelRequirements.requireExistingComponent()
+            val titleTable = titlesTableRequirements.requireExistingComponent()
 
-            return@createWebCrawlerTest pages
-                .asSequence()
-                .map { (url, pageProperties) ->
-                    locationTextField.setText(url)
+            for (url in pages.keys) {
+                locationTextField.setText(url)
 
-                    getTextButton.click()
+                getTextButton.click()
 
-                    sleep(100)
+                sleep(100)
 
-                    val titleInLabel = titleLabel.text().orEmpty()
+                val contents = titleTable.contents()
 
-                    return@map titleInLabel == pageProperties.title
+                if (contents.any { it.size != 2 }) {
+                    return@createWebCrawlerTest fail("Table your app shows has a wrong columns number")
                 }
-                .all { it }
-                .toCheckResult()
+
+                if (contents.size != url.deepUrls(depth = 1).size) {
+                    return@createWebCrawlerTest fail("Table your app shows has a wrong rows number" +
+                            " have ${contents.size} should ${ url.deepUrls(depth = 1).size}")
+                }
+
+                for ((writtenUrl, writtenTitle) in contents) {
+                    if (pages.getValue(writtenUrl).title != writtenTitle) {
+                        return@createWebCrawlerTest fail("Table your app shows has a wrong row")
+                    }
+                }
+            }
+
+            return@createWebCrawlerTest CheckResult(true)
         }.withLocalhostPagesOn(PORT)
     )
 }
