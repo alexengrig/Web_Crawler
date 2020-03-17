@@ -53,6 +53,10 @@ fun <ComponentType : AbstractJComponentFixture<*, *, *>> ComponentRequirements<C
 fun localhost(port: Int, url: String) = "http://localhost:$port$url"
 
 fun String.deepUrls(depth: Int): Set<String> {
+    return deepUrlsOld(depth) + setOf(this)
+}
+
+fun String.deepUrlsOld(depth: Int): Set<String> {
     fun String.childrenOrEmpty(): Set<String> {
         val pageProperties = pages[this]
 

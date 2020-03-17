@@ -398,6 +398,10 @@ files:
     fun localhost(port: Int, url: String) = "http://localhost:$port$url"
 
     fun String.deepUrls(depth: Int): Set<String> {
+        return deepUrlsOld(depth) + setOf(this)
+    }
+
+    fun String.deepUrlsOld(depth: Int): Set<String> {
         fun String.childrenOrEmpty(): Set<String> {
             val pageProperties = pages[this]
 
@@ -443,6 +447,9 @@ files:
         }
     }
   learner_created: false
+- name: src/crawler/service/WebCrawlerService.java
+  visible: true
+  learner_created: true
 - name: src/crawler/WebCrawler.java
   visible: true
   text: |-
@@ -459,5 +466,5 @@ files:
     }
   learner_created: false
 feedback_link: https://hyperskill.org/projects/59/stages/322/implement
-status: Unchecked
-record: -1
+status: Failed
+record: 6
