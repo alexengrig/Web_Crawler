@@ -465,6 +465,12 @@ files:
         }
     }
   learner_created: false
+- name: src/crawler/util/PageCallable.java
+  visible: true
+  learner_created: true
+- name: src/crawler/util/WebCrawlerRunner.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/59/stages/322/implement
 status: Failed
 record: 6

@@ -6,13 +6,11 @@ import crawler.domain.UrlAndTitle;
 import crawler.util.WebCrawlerRunner;
 
 import java.net.URL;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class WebCrawlerService {
+    final Phaser phaser = new Phaser(0);
     private final Consumer<UrlAndTitle> consumer;
 
     private int numberOfWorkers;
@@ -55,6 +53,7 @@ public class WebCrawlerService {
         launched = true;
         initExecutor();
         executeNewTask(new Page(0, url));
+        phaser.awaitAdvance(phaser.getPhase());
     }
 
     private void initExecutor() {
@@ -72,6 +71,7 @@ public class WebCrawlerService {
 
     private void executeNewTask(Page page) {
         executor.execute(new WebCrawlerRunner(page, this::processTaskResult));
+        phaser.register();
     }
 
     private void processTaskResult(CrawledPage page) {
@@ -83,6 +83,7 @@ public class WebCrawlerService {
         }
         consumer.accept(new UrlAndTitle(page.url.toString(), page.title));
         System.out.println("Page: " + page);
+        phaser.arriveAndDeregister();
     }
 
     public void stop() {
