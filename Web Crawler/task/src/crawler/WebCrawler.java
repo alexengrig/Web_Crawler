@@ -13,26 +13,33 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Consumer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class WebCrawler extends JFrame {
     private final static String LINE_SEPARATOR = System.lineSeparator();
+
+    private final ExecutorService backgroundExecutor;
+    private final Timer timer;
+    private TimerTask timerTask;
+    private WebCrawlerService crawlerService;
+    private ConcurrentLinkedQueue<UrlAndTitle> urlAndTitles;
     private JTextField urlTextField;
     private JTextField exportTextField;
     private JTextField workersTextField;
     private JTextField depthTextField;
     private JCheckBox depthCheckBox;
+    private JTextField timeTextField;
+    private JCheckBox timeCheckBox;
     private JLabel timeLabel;
     private JLabel parseLabel;
     private JToggleButton runButton;
-
-    private WebCrawlerService crawlerService;
-    private ConcurrentLinkedQueue<UrlAndTitle> urlAndTitles;
 
     public WebCrawler() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -42,6 +49,8 @@ public class WebCrawler extends JFrame {
         initComponents();
         setVisible(true);
         setLocationRelativeTo(null);
+        backgroundExecutor = Executors.newCachedThreadPool();
+        timer = new Timer();
     }
 
     private void initComponents() {
@@ -66,6 +75,14 @@ public class WebCrawler extends JFrame {
         depthCheckBox.setName("DepthCheckBox");
 
         add(createPanel(new JLabel("Maximum depth: "), depthTextField, depthCheckBox));
+
+        timeTextField = new JTextField();
+        timeTextField.setName("TimeTextField");
+
+        timeCheckBox = new JCheckBox("Enabled");
+        timeCheckBox.setName("TimeCheckBox");
+
+        add(createPanel(new JLabel("Time limit: "), timeTextField, timeCheckBox));
 
         timeLabel = new JLabel("0:00");
 
@@ -104,34 +121,71 @@ public class WebCrawler extends JFrame {
         return event -> {
             final int state = event.getStateChange();
             if (ItemEvent.SELECTED == state) {
-                runButton.setText("Stop");
-                urlAndTitles = new ConcurrentLinkedQueue<>();
-                parseLabel.setText("0");
-                timeLabel.setText("0:00");
-                crawlerService = new WebCrawlerService(urlAndTitle -> {
-                    urlAndTitles.add(urlAndTitle);
-                    parseLabel.setText(String.valueOf(getNumber(parseLabel.getText()) + 1));
-                });
-                crawlerService.setNumberOfWorkers(getNumber(workersTextField.getText()));
-                if (depthCheckBox.isSelected()) {
-                    crawlerService.setDepth(getNumber(depthTextField.getText()));
-                }
-                final Timer timer = new Timer(1000, e -> {
-                    System.out.println(LocalTime.now());
-                });
-                timer.start();
-                SwingUtilities.invokeLater(() -> {
-                    crawlerService.start(getUrlFromLink(urlTextField.getText()));
-                    timer.stop();
-                });
+                doCrawl();
             } else if (ItemEvent.DESELECTED == state) {
-                runButton.setText("Run");
-                if (crawlerService != null) {
-                    crawlerService.stop();
-                    crawlerService = null;
-                }
+                doStop();
             }
         };
+    }
+
+    private void doCrawl() {
+        runButton.setText("Stop");
+        parseLabel.setText("0");
+        timeLabel.setText("0:00");
+        urlAndTitles = new ConcurrentLinkedQueue<>();
+        crawlerService = new WebCrawlerService(this::addResult);
+        crawlerService.setNumberOfWorkers(getNumber(workersTextField.getText()));
+//        if (depthCheckBox.isSelected()) { // Wrong answer in test #17  File your app saves has a wrong lines number
+        crawlerService.setDepth(getNumber(depthTextField.getText()));
+//        }
+        final boolean hasTimeout = timeCheckBox.isSelected();
+        final long timeout = getNumber(timeTextField.getText());
+        backgroundExecutor.execute((() -> {
+            if (hasTimeout && timeout > 0) {
+                crawlerService.start(getUrlFromLink(urlTextField.getText()), timeout);
+            } else {
+                crawlerService.start(getUrlFromLink(urlTextField.getText()));
+            }
+            timerTask.cancel();
+            SwingUtilities.invokeLater(() -> {
+                runButton.setText("Run");
+                runButton.setSelected(false);
+            });
+        }));
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                SwingUtilities.invokeLater(() -> {
+                    final String colon = ":";
+                    final String time = timeLabel.getText();
+                    final int minutes = Integer.parseInt(time.substring(0, time.indexOf(colon)));
+                    final int seconds = Integer.parseInt(time.substring(time.indexOf(colon) + 1));
+                    final Duration duration = Duration.ofMinutes(minutes).plusSeconds(seconds + 1);
+                    final String nextMinutes = Long.toString(duration.toMinutes());
+                    final int nextSecondsPart = duration.toSecondsPart();
+                    final String nextSeconds = (nextSecondsPart > 9 ? "" : "0") + nextSecondsPart;
+                    timeLabel.setText(nextMinutes + colon + nextSeconds);
+                });
+            }
+        };
+        backgroundExecutor.execute(() -> timer.schedule(timerTask, 0, 1000));
+    }
+
+    private void addResult(UrlAndTitle urlAndTitle) {
+        urlAndTitles.add(urlAndTitle);
+        SwingUtilities.invokeLater(() -> parseLabel.setText(String.valueOf(getNumber(parseLabel.getText()) + 1)));
+    }
+
+    private void doStop() {
+        runButton.setText("Run");
+        if (crawlerService != null) {
+            crawlerService.stop();
+            crawlerService = null;
+        }
+        if (timerTask != null) {
+            timerTask.cancel();
+            timerTask = null;
+        }
     }
 
     private int getNumber(String text) {
@@ -180,11 +234,18 @@ public class WebCrawler extends JFrame {
                 }
             }
             try (FileWriter writer = new FileWriter(file)) {
-                for (UrlAndTitle urlAndTitle : urlAndTitles) {
+                if (!urlAndTitles.isEmpty()) {
+                    UrlAndTitle urlAndTitle = urlAndTitles.get(0);
                     writer.write(urlAndTitle.url);
                     writer.write(LINE_SEPARATOR);
                     writer.write(urlAndTitle.title);
-                    writer.write(LINE_SEPARATOR);
+                    for (int i = 1; i < urlAndTitles.size(); i++) {
+                        urlAndTitle = urlAndTitles.get(i);
+                        writer.write(LINE_SEPARATOR);
+                        writer.write(urlAndTitle.url);
+                        writer.write(LINE_SEPARATOR);
+                        writer.write(urlAndTitle.title);
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();

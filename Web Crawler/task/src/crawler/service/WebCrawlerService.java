@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 
 public class WebCrawlerService {
     final Phaser phaser = new Phaser(0);
+    private final ConcurrentLinkedQueue<URL> famousUrls;
     private final Consumer<UrlAndTitle> consumer;
 
     private int numberOfWorkers;
@@ -23,6 +24,7 @@ public class WebCrawlerService {
     }
 
     protected WebCrawlerService(Consumer<UrlAndTitle> consumer, int numberOfWorkers, int depth) {
+        this.famousUrls = new ConcurrentLinkedQueue<>();
         this.consumer = consumer;
         this.numberOfWorkers = numberOfWorkers;
         this.depth = depth;
@@ -43,17 +45,27 @@ public class WebCrawlerService {
     }
 
     public void start(URL url) {
-        start(url, 10 * 60 * 1000);
+        doExecute(url);
+        phaser.awaitAdvance(phaser.getPhase());
     }
 
     public void start(URL url, long timeout) {
+        doExecute(url);
+        try {
+            phaser.awaitAdvanceInterruptibly(phaser.getPhase(), timeout, TimeUnit.SECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            stop();
+        }
+    }
+
+    private void doExecute(URL url) {
         if (launched) {
             throw new IllegalStateException("Launched.");
         }
         launched = true;
         initExecutor();
+        famousUrls.add(url);
         executeNewTask(new Page(0, url));
-        phaser.awaitAdvance(phaser.getPhase());
     }
 
     private void initExecutor() {
@@ -69,6 +81,10 @@ public class WebCrawlerService {
         }
     }
 
+    private boolean canExecuteTask(URL url) {
+        return !famousUrls.contains(url) && famousUrls.add(url);
+    }
+
     private void executeNewTask(Page page) {
         executor.execute(new WebCrawlerRunner(page, this::processTaskResult));
         phaser.register();
@@ -78,11 +94,12 @@ public class WebCrawlerService {
         final int nextDepth = page.depth + 1;
         if (depth < 1 || depth >= nextDepth) {
             for (URL url : page.urls) {
-                executeNewTask(new Page(nextDepth, url));
+                if (canExecuteTask(url)) {
+                    executeNewTask(new Page(nextDepth, url));
+                }
             }
         }
         consumer.accept(new UrlAndTitle(page.url.toString(), page.title));
-        System.out.println("Page: " + page);
         phaser.arriveAndDeregister();
     }
 
