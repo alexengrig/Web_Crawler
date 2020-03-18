@@ -73,8 +73,7 @@ public class WebCrawlerRunner implements Runnable {
                     return html.substring(indexOfBeginTitle + beginTitle.length(), indexOfEndTitle);
                 }
             }
-        } catch (Exception e) {
-
+        } catch (Exception ignored) {
         }
         return "";
     }
@@ -117,8 +116,7 @@ public class WebCrawlerRunner implements Runnable {
             if ("text/html".equals(contentType)) {
                 return url;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignore) {
         }
         return null;
     }
